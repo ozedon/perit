@@ -25,6 +25,7 @@ let walls = [];
 let wallSpeed = 4;
 const wallFrameInterval = 84.55; // frames (170BPM * 4 beats at 60fps - fine tuned)
 let wallNumber = 0; // Track wall count
+let lastAudioTime = 0; // For audio sync
 
 // Stars
 let stars = [];
@@ -157,13 +158,14 @@ function update() {
   const currentAudioTime = bgm ? bgm.currentTime() : 0;
   
   // 次のwallをスポーンすべき時間
-  const nextWallNumber = wallNumber + 1;
-  const nextWallSpawnTime = nextWallNumber * wallSpawnInterval;
+  const nextWallSpawnTime = wallNumber * wallSpawnInterval;
   
-  // 現在の再生時間が次のwallスポーン時間に達したらスポーン
-  if (currentAudioTime >= nextWallSpawnTime) {
+  // 前フレームとこのフレームの間でスポーン時刻を通過したかチェック
+  if (lastAudioTime < nextWallSpawnTime && currentAudioTime >= nextWallSpawnTime) {
     spawnWall();
   }
+  
+  lastAudioTime = currentAudioTime;
   
   // Update animation frame
   frameCounter++;
@@ -343,8 +345,12 @@ function keyPressed() {
       walls = [];
       stars = [];
       wallNumber = 0;
+      lastAudioTime = 0;
       spawnWall();
-      if (bgm) bgm.play();
+      if (bgm) {
+        bgm.stop();
+        bgm.play();
+      }
       return false; // Prevent default
     } else if (gameOver) {
       gameActive = false;
