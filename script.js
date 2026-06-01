@@ -23,7 +23,6 @@ const totalFrames = 4;
 // Walls
 let walls = [];
 let wallSpeed = 4;
-let wallFrameCounter = 0;
 const wallFrameInterval = 84.55; // frames (170BPM * 4 beats at 60fps - fine tuned)
 let wallNumber = 0; // Track wall count
 
@@ -152,11 +151,18 @@ function update() {
     }
   }
   
-  // Spawn new walls based on frame interval
-  wallFrameCounter += 1 / wallFrameInterval;
-  if (wallFrameCounter >= 1) {
+  // Spawn new walls based on audio time (音声再生時間に同期)
+  const beatDuration = 60 / 170; // 1拍の秒数 (170 BPM)
+  const wallSpawnInterval = beatDuration * 4; // wallの生成間隔 (4拍)
+  const currentAudioTime = bgm ? bgm.currentTime() : 0;
+  
+  // 次のwallをスポーンすべき時間
+  const nextWallNumber = wallNumber + 1;
+  const nextWallSpawnTime = nextWallNumber * wallSpawnInterval;
+  
+  // 現在の再生時間が次のwallスポーン時間に達したらスポーン
+  if (currentAudioTime >= nextWallSpawnTime) {
     spawnWall();
-    wallFrameCounter -= 1;
   }
   
   // Update animation frame
@@ -337,7 +343,6 @@ function keyPressed() {
       walls = [];
       stars = [];
       wallNumber = 0;
-      wallFrameCounter = 0;
       spawnWall();
       if (bgm) bgm.play();
       return false; // Prevent default
@@ -350,7 +355,6 @@ function keyPressed() {
       walls = [];
       stars = [];
       wallNumber = 0;
-      wallFrameCounter = 0;
       spawnWall();
     }
   }
