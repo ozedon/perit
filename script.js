@@ -361,7 +361,12 @@ function keyPressed() {
       walls = [];
       stars = [];
       wallNumber = 0;
+      lastAudioTime = 0;
       spawnWall();
+      if (bgm) {
+        bgm.stop();
+        bgm.play();
+      }
     }
   }
 }
