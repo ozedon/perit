@@ -337,6 +337,7 @@ function drawStar(x, y, radius1, radius2, npoints) {
 function keyPressed() {
   if (key === ' ') {
     if (!gameActive && !gameOver) {
+      // Game start from title screen
       gameActive = true;
       gameOver = false;
       score = 0;
@@ -345,15 +346,15 @@ function keyPressed() {
       walls = [];
       stars = [];
       wallNumber = 0;
-      lastAudioTime = 0;
-      spawnWall();
+      lastAudioTime = -1;
       if (bgm) {
         bgm.stop();
         bgm.play();
       }
       return false; // Prevent default
     } else if (gameOver) {
-      gameActive = false;
+      // Restart after game over
+      gameActive = true;
       gameOver = false;
       score = 0;
       characterY = height / 2;
@@ -361,8 +362,7 @@ function keyPressed() {
       walls = [];
       stars = [];
       wallNumber = 0;
-      lastAudioTime = 0;
-      spawnWall();
+      lastAudioTime = -1;
       if (bgm) {
         bgm.stop();
         bgm.play();
