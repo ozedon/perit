@@ -1,5 +1,7 @@
 // Game variables
 let peritImg;
+let backImg;
+let woodsImg;
 let bgm;
 let starSound;
 let characterY;
@@ -10,6 +12,10 @@ let gameActive = false;
 let gameOver = false;
 let score = 0;
 let debugKeyPressed = false;
+
+// Background parallax effect
+let backGroundOffset = 0;
+const backGroundSpeed = 0.5; // ゆっくり動かすための速度
 
 // Character animation
 let frameIndex = 0;
@@ -41,6 +47,8 @@ let showDebugInfo = false;
 
 function preload() {
   peritImg = loadImage('assets/perit.png');
+  backImg = loadImage('assets/back.png');
+  woodsImg = loadImage('assets/woods.png');
   bgm = loadSound('assets/bgm.mp3');
   starSound = loadSound('assets/star.mp3');
 }
@@ -58,7 +66,8 @@ function setup() {
 }
 
 function draw() {
-  background(40);
+  // Draw background with parallax effect
+  drawBackground();
   
   // Check for debug toggle
   if (keyIsPressed && (key === 'd' || key === 'D')) {
@@ -103,6 +112,11 @@ function drawStartScreen() {
 }
 
 function update() {
+  // Update background parallax effect
+  if (gameActive) {
+    backGroundOffset -= backGroundSpeed;
+  }
+  
   // Check if BGM ended
   if (gameActive && bgm && !bgm.isPlaying()) {
     gameOver = true;
@@ -347,6 +361,7 @@ function keyPressed() {
       stars = [];
       wallNumber = 0;
       lastAudioTime = -1;
+      backGroundOffset = 0;
       if (bgm) {
         bgm.stop();
         bgm.play();
@@ -363,6 +378,7 @@ function keyPressed() {
       stars = [];
       wallNumber = 0;
       lastAudioTime = -1;
+      backGroundOffset = 0;
       if (bgm) {
         bgm.stop();
         bgm.play();
@@ -370,3 +386,42 @@ function keyPressed() {
     }
   }
 }
+
+function drawBackground() {
+  // Always clear the background first
+  background(40);
+  
+  // Draw fixed background
+  if (backImg && backImg.width && backImg.height) {
+    const scaledHeight = height;
+    const scaledWidth = (backImg.width / backImg.height) * scaledHeight;
+    push();
+    imageMode(CORNER);
+    image(backImg, 0, 0, scaledWidth, scaledHeight);
+    pop();
+  }
+  
+  // Draw scrolling woods background
+  if (!woodsImg || !woodsImg.width || !woodsImg.height) {
+    return;
+  }
+  
+  // Scale image to fit canvas height, maintaining aspect ratio
+  const scaledHeight = height;
+  const scaledWidth = (woodsImg.width / woodsImg.height) * scaledHeight;
+  
+  // For seamless tiling, use scaled width for offset calculation
+  let offset = (backGroundOffset % scaledWidth);
+  if (offset > 0) offset -= scaledWidth;  // Adjust for negative offset
+  
+  push();
+  imageMode(CORNER);
+  // Draw scrolling background tiles
+  let x = offset;
+  while (x < width) {
+    image(woodsImg, x, 0, scaledWidth, scaledHeight);
+    x += scaledWidth;
+  }
+  pop();
+}
+
