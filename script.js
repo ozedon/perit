@@ -47,6 +47,11 @@ const starSize = 20;        // ⭐️のサイズ(px)
 const starSpawnChance = 1;  // 壁で⭐️が作られる確率
 const starPoints = 4;       // ⭐️の得点
 
+// ✨ キラキラの粉(クリック中にperitから舞う軌跡)
+let sparkles = [];                  // キラキラの配列
+const sparkleLifeFrames = 30;       // 寿命(フレーム数) 60fpsで約0.5秒
+const sparklesPerFrame = 2;         // 1フレームあたりの発生数
+
 
 // Game constants
 const characterX = 130;
@@ -247,10 +252,26 @@ function update() {
   // Update stars
   for (let i = stars.length - 1; i >= 0; i--) {
     stars[i].x -= wallSpeed;
-    
+
     // Remove star if off screen
     if (stars[i].x + starSize < 0) {
       stars.splice(i, 1);
+    }
+  }
+
+  // ✨ キラキラの粉:クリック(羽ばたき)中だけperitの位置から発生させる
+  if (isFlapping()) {
+    spawnSparkles();
+  }
+
+  // キラキラを更新(壁と同じ速度で左に流し、寿命で消す)
+  for (let i = sparkles.length - 1; i >= 0; i--) {
+    const s = sparkles[i];
+    s.x -= wallSpeed;        // 壁と同じ速度で左へ流れる
+    s.y += s.vy;             // ふわっと漂う
+    s.life--;
+    if (s.life <= 0) {
+      sparkles.splice(i, 1);
     }
   }
   
@@ -351,7 +372,10 @@ function drawGame() {
   for (let star of stars) {
     drawStar(star.x, star.y, starSize / 2, starSize, 5);
   }
-  
+
+  // ✨ キラキラの粉(peritの後ろに描く)
+  drawSparkles();
+
   // Draw character
   push();
   translate(characterX, characterY);
@@ -439,6 +463,39 @@ function drawStar(x, y, radius1, radius2, npoints) {
   noStroke();
 }
 
+// ✨ peritの位置からキラキラの粉を発生させる
+function spawnSparkles() {
+  for (let i = 0; i < sparklesPerFrame; i++) {
+    sparkles.push({
+      // perit本体のあたりからランダムにばらまく
+      x: characterX + random(-frameWidth / 2, frameWidth / 4),
+      y: characterY + random(-frameHeight / 3, frameHeight / 3),
+      vy: random(-0.4, 0.4),                  // ふわっとした上下の漂い
+      size: random(2, 5),                     // 粉の大きさ
+      life: random(sparkleLifeFrames * 0.7, sparkleLifeFrames), // 寿命にばらつき
+      maxLife: sparkleLifeFrames,
+      hue: random(['green', 'white', 'blue'])  // 色のバリエーション
+    });
+  }
+}
+
+// ✨ キラキラの粉を描く(寿命に応じてフェードアウト&点滅)
+function drawSparkles() {
+  push();
+  noStroke();
+  for (let s of sparkles) {
+    const alpha = map(s.life, 0, s.maxLife, 0, 255); // 消えるにつれ薄く
+    // キラッと瞬く感じを出すための明滅
+    const twinkle = 0.6 + 0.4 * sin(s.life * 0.8);
+    let r = 255, g = 255, b = 255;
+    if (s.hue === 'green') { r = 173; g = 255; b = 182; }
+    else if (s.hue === 'blue') { r = 88; g = 210; b = 255; }
+    fill(r, g, b, alpha * twinkle);
+    ellipse(s.x, s.y, s.size, s.size);
+  }
+  pop();
+}
+
 // ゲームの開始 / リスタート処理(タイトル画面・ゲームオーバー画面の両方から呼ばれる)
 function startGame() {
   gameActive = true;
@@ -448,6 +505,7 @@ function startGame() {
   characterVelocity = 0;
   walls = [];
   stars = [];
+  sparkles = [];
   wallNumber = 0;
   lastAudioTime = -1;
   backGroundOffset = 0;
