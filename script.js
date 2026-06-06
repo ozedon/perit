@@ -1,97 +1,155 @@
-// Game variables
-let peritImg;
-let backImg;
-let woodsImg;
+// グローバル変数
+let peritImg;   // メインキャラクター
+let backImg;    // 動かない背景
+let woodsImg;   // 動く背景
+let debugOnImg;  // デバッグON ボタン画像
+let debugOffImg; // デバッグOFF ボタン画像
 let bgm;
-let starSound;
+let starSound;  // ⭐️を取った時の音
 let characterY;
-let characterVelocity;
-let gravity = 0.2;
-let flapPower = 0.2;
+let characterVelocity;  // キャラクターの移動速度
+let gravity = 0.2;      // 重力(下に引っ張る力)
+let flapPower = 0.2;    // 羽ばたき力(上に引っ張る力)
 let gameActive = false;
 let gameOver = false;
 let score = 0;
 let debugKeyPressed = false;
+let pointerDown = false; // タッチ/マウスで押下中かどうか
+
+// スペースキー or タッチ/タップで「上昇中」かどうかを判定
+function isFlapping() {
+  return (keyIsPressed && key === ' ') || pointerDown;
+}
 
 // Background parallax effect
 let backGroundOffset = 0;
 const backGroundSpeed = 0.5; // ゆっくり動かすための速度
 
-// Character animation
+// キャラクターアニメーション
 let frameIndex = 0;
 let frameCounter = 0;
 const frameWidth = 40;
 const frameHeight = 42;
-const animationFrames = [0, 1, 0, 2]; // Right, Middle, Right, Left
-const totalFrames = 4;
+const animationFrames = [0, 1, 0, 2]; // 左＞中＞左＞右＞
+const totalFrames = 4;  // アニメーションフレームの数
 
 
-// Walls
+// 壁
 let walls = [];
 let wallSpeed = 4;
 const wallFrameInterval = 84.55; // frames (170BPM * 4 beats at 60fps - fine tuned)
-let wallNumber = 0; // Track wall count
-let lastAudioTime = 0; // For audio sync
+let wallNumber = 0; // 壁番号
+let lastAudioTime = 0; // 
 
-// Stars
-let stars = [];
-const starSize = 20;
-const starSpawnChance = 1;
-const starPoints = 4;
+// ⭐️
+let stars = [];             // ⭐️の配列
+const starSize = 20;        // ⭐️のサイズ(px)
+const starSpawnChance = 1;  // 壁で⭐️が作られる確率
+const starPoints = 4;       // ⭐️の得点
+
 
 // Game constants
 const characterX = 130;
+const GAME_WIDTH = 800;   // 内部解像度(横)
+const GAME_HEIGHT = 600;  // 内部解像度(縦)
+let cnv; // キャンバス要素への参照(CSS拡大に使用)
+
+// デバッグ切り替えボタン(スタート画面・ゲームオーバー画面の右下に表示)
+const debugBtnSize = 56;
+const debugBtnMargin = 24;
+function debugButtonBounds() {
+  return {
+    x: width - debugBtnMargin - debugBtnSize,
+    y: height - debugBtnMargin - debugBtnSize,
+    w: debugBtnSize,
+    h: debugBtnSize
+  };
+}
 
 // Debug mode
 let showDebugInfo = false;
 
-function preload() {
+function preload() {  // 一番最初に実行される関数。主にゲームに使われる画像や音を予めロードしておくのに使う。
   peritImg = loadImage('assets/perit.png');
   backImg = loadImage('assets/back.png');
   woodsImg = loadImage('assets/woods.png');
   bgm = loadSound('assets/bgm.mp3');
   starSound = loadSound('assets/star.mp3');
+  debugOnImg = loadImage('assets/debugon.svg');
+  debugOffImg = loadImage('assets/debugoff.svg');
 }
 
 function setup() {
   let container = select('#p5-container');
-  let canvas = createCanvas(800, 600);
-  canvas.parent(container);
+  cnv = createCanvas(GAME_WIDTH, GAME_HEIGHT);
+  cnv.parent(container);
   frameRate(60);
-  
+
   characterY = height / 2;
   characterVelocity = 0;
 
   bgm.setVolume(0.1);
+
+  // スマホ・タブレットでは画面いっぱいに拡大表示する
+  fitCanvasToScreen();
+}
+
+// スマホ・タブレットかどうかを判定
+function isMobileOrTablet() {
+  return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0 && !window.matchMedia('(pointer: fine)').matches);
+}
+
+// 内部解像度(800x600)は保ったまま、CSSでキャンバスを画面に合わせて拡大する。
+// アスペクト比を維持してはみ出さない最大サイズ(contain)にフィットさせる。
+function fitCanvasToScreen() {
+  if (!cnv) return;
+
+  // PC(マウス操作)では元の解像度のまま表示する
+  if (!isMobileOrTablet()) {
+    cnv.style('width', GAME_WIDTH + 'px');
+    cnv.style('height', GAME_HEIGHT + 'px');
+    return;
+  }
+
+  const scale = Math.min(windowWidth / GAME_WIDTH, windowHeight / GAME_HEIGHT);
+  cnv.style('width', (GAME_WIDTH * scale) + 'px');
+  cnv.style('height', (GAME_HEIGHT * scale) + 'px');
+}
+
+// 画面リサイズ・端末回転に追従
+function windowResized() {
+  fitCanvasToScreen();
 }
 
 function draw() {
-  // Draw background with parallax effect
+  // 背景を遠近法で描く
   drawBackground();
   
-  // Check for debug toggle
+  // デバッグ機能のOn/OffをDキーでトグル
   if (keyIsPressed && (key === 'd' || key === 'D')) {
-    if (!debugKeyPressed) {
-      showDebugInfo = !showDebugInfo;
-      debugKeyPressed = true;
+    if (!debugKeyPressed) {           // debugKeyPressed が false ならば
+      showDebugInfo = !showDebugInfo; // showDebugInfo を off
+      debugKeyPressed = true;         // debugKeyPressed を true
     }
-  } else {
-    debugKeyPressed = false;
+  } else {                            // debugKeyPressed が true ならば
+    debugKeyPressed = false;          // debugKeyPressed を false
   }
 
+  // gameActive状態でなく、gameOver状態でもなければ
   if (!gameActive && !gameOver) {
-    drawStartScreen();
-  } else if (gameActive) {
-    update();
-    checkCollisions();
-    drawGame();
+    drawStartScreen();                // スタート画面を描画
+  } else if (gameActive) {            // gameActive状態であれば
+    update();                        // アップデート処理をして
+    checkCollisions();               // 衝突判定をして
+    drawGame();                      // 
     
-    if (gameOver) {
-      drawGameOver();
+    if (gameOver) {                  // gameOver が true ならば
+      drawGameOver();                // ゲームオーバーを描画
     }
-  } else if (gameOver) {
-    drawGame();
-    drawGameOver();
+  } else if (gameOver) {              // gameOver が true ならば
+    drawGame();                      // ゲームを描画
+    drawGameOver();                  // ゲームオーバーを描画
   }
 }
 
@@ -102,13 +160,43 @@ function drawStartScreen() {
   text('Perit\'s Little Adventure', width / 2, height / 2 - 100);
   
   textSize(24);
-  text('スペースキーを押してスタート', width / 2, height / 2);
+  text('スペース / タップでスタート', width / 2, height / 2);
   
   textSize(16);
   text('上下の壁を避けてゴールを目指そう!', width / 2, height / 2 + 80);
   
   // Draw perit preview
   image(peritImg, width / 2 - frameWidth / 2, height / 2 + 150, frameWidth, frameHeight, 0, 0, frameWidth, frameHeight);
+
+  // デバッグ切り替えボタン
+  drawDebugButton();
+}
+
+// デバッグON/OFFボタンを右下に描画(スタート・ゲームオーバー画面でのみ呼ばれる)
+function drawDebugButton() {
+  const b = debugButtonBounds();
+  const img = showDebugInfo ? debugOnImg : debugOffImg;
+  push();
+  imageMode(CORNER);
+  // 半透明の丸い下地で押せることを分かりやすくする
+  noStroke();
+  fill(0, 0, 0, showDebugInfo ? 150 : 90);
+  ellipse(b.x + b.w / 2, b.y + b.h / 2, b.w + 12);
+  if (img) image(img, b.x, b.y, b.w, b.h);
+  pop();
+}
+
+// 右下のデバッグボタンがタップされたか判定し、押されていればトグルする
+// 戻り値: ボタンを押した場合は true(ゲーム開始処理をスキップするため)
+function handleDebugButtonTap(px, py) {
+  // プレイ中は非表示なので反応させない
+  if (gameActive) return false;
+  const b = debugButtonBounds();
+  if (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) {
+    showDebugInfo = !showDebugInfo;
+    return true;
+  }
+  return false;
 }
 
 function update() {
@@ -123,7 +211,7 @@ function update() {
   }
   
   // Gravity and velocity
-  if (keyIsPressed && key === ' ') {
+  if (isFlapping()) {
     characterVelocity -= flapPower;
   } else {
     characterVelocity += gravity;
@@ -183,7 +271,7 @@ function update() {
   
   // Update animation frame
   frameCounter++;
-  const animationInterval = (keyIsPressed && key === ' ') ? 4 : 8; // スペース押下時は倍速
+  const animationInterval = isFlapping() ? 4 : 8; // 上昇中は倍速
   if (frameCounter > animationInterval) {
     frameIndex = (frameIndex + 1) % totalFrames;
     frameCounter = 0;
@@ -291,7 +379,10 @@ function drawGameOver() {
   text('Score: ' + score, width / 2, height / 2 + 20);
   
   textSize(18);
-  text('スペースキーでリスタート', width / 2, height / 2 + 80);
+  text('スペース / タップでリスタート', width / 2, height / 2 + 80);
+
+  // デバッグ切り替えボタン
+  drawDebugButton();
 }
 
 function spawnWall() {
@@ -348,43 +439,72 @@ function drawStar(x, y, radius1, radius2, npoints) {
   noStroke();
 }
 
+// ゲームの開始 / リスタート処理(タイトル画面・ゲームオーバー画面の両方から呼ばれる)
+function startGame() {
+  gameActive = true;
+  gameOver = false;
+  score = 0;
+  characterY = height / 2;
+  characterVelocity = 0;
+  walls = [];
+  stars = [];
+  wallNumber = 0;
+  lastAudioTime = -1;
+  backGroundOffset = 0;
+  if (bgm) {
+    bgm.stop();
+    bgm.play();
+  }
+}
+
+// スペースキー / タッチ / マウスで「開始または上昇」を行う共通処理
+// 戻り値: ゲームを開始/リスタートした場合は true
+function handleInputStart() {
+  if (!gameActive && !gameOver) {
+    // タイトル画面からスタート
+    startGame();
+    return true;
+  } else if (gameOver) {
+    // ゲームオーバーからリスタート
+    startGame();
+    return true;
+  }
+  return false;
+}
+
 function keyPressed() {
   if (key === ' ') {
-    if (!gameActive && !gameOver) {
-      // Game start from title screen
-      gameActive = true;
-      gameOver = false;
-      score = 0;
-      characterY = height / 2;
-      characterVelocity = 0;
-      walls = [];
-      stars = [];
-      wallNumber = 0;
-      lastAudioTime = -1;
-      backGroundOffset = 0;
-      if (bgm) {
-        bgm.stop();
-        bgm.play();
-      }
-      return false; // Prevent default
-    } else if (gameOver) {
-      // Restart after game over
-      gameActive = true;
-      gameOver = false;
-      score = 0;
-      characterY = height / 2;
-      characterVelocity = 0;
-      walls = [];
-      stars = [];
-      wallNumber = 0;
-      lastAudioTime = -1;
-      backGroundOffset = 0;
-      if (bgm) {
-        bgm.stop();
-        bgm.play();
-      }
-    }
+    handleInputStart();
+    return false; // Prevent default (ページのスクロール防止)
   }
+}
+
+// マウス(PC)での操作
+function mousePressed() {
+  // 右下のデバッグボタンが押されたら、ゲーム開始せずトグルだけする
+  if (handleDebugButtonTap(mouseX, mouseY)) return false;
+  pointerDown = true;
+  handleInputStart();
+  return false; // Prevent default
+}
+
+function mouseReleased() {
+  pointerDown = false;
+  return false;
+}
+
+// タッチ(スマホ・タブレット)での操作
+function touchStarted() {
+  // 右下のデバッグボタンが押されたら、ゲーム開始せずトグルだけする
+  if (handleDebugButtonTap(mouseX, mouseY)) return false;
+  pointerDown = true;
+  handleInputStart();
+  return false; // Prevent default (スクロール・ズーム防止)
+}
+
+function touchEnded() {
+  pointerDown = false;
+  return false; // Prevent default
 }
 
 function drawBackground() {

@@ -2,33 +2,35 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
   <title>Perit's little adventure</title>
   <style>
+    html, body {
+      height: 100%;
+    }
     body {
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
       margin: 0;
+      overflow: hidden; /* スマホ・タブレットでのスクロールを防ぐ */
+      background: #000;
     }
     .container {
       text-align: center;
     }
     #p5-container {
       display: inline-block;
+      line-height: 0; /* canvas下の余白を消す */
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js"></script>
 </head>
 <body>
-  <div class="container" style="">
-    <h1>🧚‍♀️ Perit's little adventure ⭐️</h1>
+  <div class="container">
     <div id="p5-container"></div>
-  </div>
-  <div>
-
   </div>
 <script src="script.js"></script>
 </body>
