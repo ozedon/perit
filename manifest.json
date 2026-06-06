@@ -1,0 +1,16 @@
+{
+  "name": "Perit's Little Adventure",
+  "short_name": "Perit",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "start_url": "./index.html",
+  "icons": [
+    {
+      "src": "assets/perit.png",
+      "sizes": "160x42",
+      "type": "image/png"
+    }
+  ]
+}

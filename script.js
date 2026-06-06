@@ -21,7 +21,7 @@ function isFlapping() {
   return (keyIsPressed && key === ' ') || pointerDown;
 }
 
-// Background parallax effect
+// 背景の遠近効果
 let backGroundOffset = 0;
 const backGroundSpeed = 0.5; // ゆっくり動かすための速度
 
@@ -125,6 +125,34 @@ function fitCanvasToScreen() {
 // 画面リサイズ・端末回転に追従
 function windowResized() {
   fitCanvasToScreen();
+}
+
+// 端末を全画面に切り替える(アドレスバー・ステータスバーを消す)。
+// ユーザー操作(タップ等)の中からしか呼べない仕様なので、入力処理から呼ぶ。
+// Android Chrome等では有効。iOS Safariは非対応のため何も起きない(「ホーム画面に追加」で全画面化)。
+let fullscreenTried = false;
+function requestFullscreenIfMobile() {
+  if (fullscreenTried) return;       // 失敗してもしつこく呼ばない
+  if (!isMobileOrTablet()) return;   // PCでは何もしない
+  fullscreenTried = true;
+
+  const el = document.documentElement;
+  const req = el.requestFullscreen
+    || el.webkitRequestFullscreen   // 古いWebKit系
+    || el.mozRequestFullScreen
+    || el.msRequestFullscreen;
+  if (req) {
+    // Promiseを返す実装ではrejectをここで握りつぶしておく(未対応端末対策)
+    try {
+      const p = req.call(el);
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { /* 非対応端末では無視 */ }
+  }
+
+  // 画面の向きを横向きに固定できる端末では固定する(任意・失敗しても無視)
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('landscape').catch(() => {});
+  }
 }
 
 function draw() {
@@ -553,6 +581,8 @@ function mouseReleased() {
 
 // タッチ(スマホ・タブレット)での操作
 function touchStarted() {
+  // 最初のタップで全画面化(アドレスバー・ステータスバーを消す)
+  requestFullscreenIfMobile();
   // 右下のデバッグボタンが押されたら、ゲーム開始せずトグルだけする
   if (handleDebugButtonTap(mouseX, mouseY)) return false;
   pointerDown = true;

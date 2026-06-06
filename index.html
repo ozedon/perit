@@ -3,16 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <!-- iOS: ホーム画面に追加するとアドレスバー・ステータスバーを消して全画面表示する -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#000000">
+  <!-- Android: ホーム画面に追加 / 全画面用の設定 -->
+  <link rel="manifest" href="manifest.json">
   <title>Perit's little adventure</title>
   <style>
     html, body {
       height: 100%;
+      height: 100dvh; /* iOS等でアドレスバーを除いた実際の表示領域に合わせる */
     }
     body {
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
+      min-height: 100dvh;
       margin: 0;
       overflow: hidden; /* スマホ・タブレットでのスクロールを防ぐ */
       background: #000;
